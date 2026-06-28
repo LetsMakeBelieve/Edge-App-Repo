@@ -1,0 +1,10 @@
+tasks:
+  install-dependencies:
+    name: Install dependencies
+    command: |
+      set -e
+      echo "No dependency manifest found; nothing to install."
+    triggeredBy:
+      - manual
+      - postDevcontainerStart
+      - prebuild
