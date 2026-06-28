@@ -1,0 +1,719 @@
+{
+  "source_file": "/workspaces/Edge-App-Repo/install-data/Machine Install Data(Sheet1).csv",
+  "headers": [
+    "Machine Make and Model",
+    "Bar feed Model",
+    "Installation Distance",
+    "Modification notes",
+    "Parameter Record"
+  ],
+  "stats": {
+    "total_csv_rows_including_header": 63,
+    "parsed_install_records": 35,
+    "blank_rows_skipped": 17,
+    "manufacturer_sections": 9,
+    "section_notes": 1,
+    "records_missing_distance": 10,
+    "records_missing_bar_feeder": 1,
+    "records_needing_manufacturer_review": 0
+  },
+  "manufacturer_sections": [
+    {
+      "name": "Citizen",
+      "source_row": 3
+    },
+    {
+      "name": "EMCO",
+      "source_row": 8
+    },
+    {
+      "name": "Ganesh",
+      "source_row": 11
+    },
+    {
+      "name": "Hwacheon",
+      "source_row": 21
+    },
+    {
+      "name": "Hwacheon Cuetex 160A MC",
+      "source_row": 22
+    },
+    {
+      "name": "Miyano",
+      "source_row": 25
+    },
+    {
+      "name": "Maier",
+      "source_row": 28
+    },
+    {
+      "name": "STAR",
+      "source_row": 32
+    },
+    {
+      "name": "Tsugami",
+      "source_row": 48
+    }
+  ],
+  "section_notes": [
+    {
+      "note": "Do Not forget to check interface on / off switch for sourcing 24vdc to bar feed outputs",
+      "section": "Hanawah",
+      "source_row": 18
+    }
+  ],
+  "records": [
+    {
+      "source_row": 4,
+      "lathe_manufacturer": "Citizen",
+      "machine_model": "A-32",
+      "bar_feeder_model_original": "C332",
+      "bar_feeder_model_normalized": "C332",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 5,
+      "lathe_manufacturer": "Citizen",
+      "machine_model": "C-20",
+      "bar_feeder_model_original": "C320",
+      "bar_feeder_model_normalized": "C320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 9,
+      "lathe_manufacturer": "EMCO",
+      "machine_model": "Emco Turn 420 MC",
+      "bar_feeder_model_original": "FMB Doppel Turbo ET420",
+      "bar_feeder_model_normalized": "FMB Doppel Turbo ET420",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": "12 1/4 in",
+      "distance_in_eighths": 98,
+      "distance_in_inches_decimal": 12.25,
+      "distance_original": "12.25",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 12,
+      "lathe_manufacturer": "Ganesh",
+      "machine_model": "Ganesh 52 TTMY",
+      "bar_feeder_model_original": "V65 Servo",
+      "bar_feeder_model_normalized": "V65 Servo",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 13,
+      "lathe_manufacturer": "Ganesh",
+      "machine_model": "Ganesh 52 TTMY",
+      "bar_feeder_model_original": "Patriot 551",
+      "bar_feeder_model_normalized": "Patriot 551",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": "from oil Recouperator",
+      "distance_display": "7 1/2 in",
+      "distance_in_eighths": 60,
+      "distance_in_inches_decimal": 7.5,
+      "distance_original": "7.5 from oil Recouperator",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 14,
+      "lathe_manufacturer": "Ganesh",
+      "machine_model": "Ganesh 32CS",
+      "bar_feeder_model_original": "Rebel V-65 Servo",
+      "bar_feeder_model_normalized": "Rebel V-65 Servo",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": "need Diode for collet open / feed stop",
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 15,
+      "lathe_manufacturer": "Ganesh",
+      "machine_model": "Ganesh Cyclone 32 NCY",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": "need Diode for collet open / feed stop",
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 16,
+      "lathe_manufacturer": "Ganesh",
+      "machine_model": "Ganesh 32CS",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": "need Diode for collet open / feed stop",
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 19,
+      "lathe_manufacturer": "Hanawah",
+      "machine_model": "Hanwha XD20H",
+      "bar_feeder_model_original": null,
+      "bar_feeder_model_normalized": null,
+      "bar_feeder_manufacturer_inferred": null,
+      "distance_context": null,
+      "distance_display": "12 in",
+      "distance_in_eighths": 96,
+      "distance_in_inches_decimal": 12,
+      "distance_original": "12",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": [
+        "missing_bar_feeder_model"
+      ]
+    },
+    {
+      "source_row": 26,
+      "lathe_manufacturer": "Miyano",
+      "machine_model": "Miyano BNA-42 DHY",
+      "bar_feeder_model_original": "MLS-65",
+      "bar_feeder_model_normalized": "MLS-65",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "11 1/4 in",
+      "distance_in_eighths": 90,
+      "distance_in_inches_decimal": 11.25,
+      "distance_original": "11.25",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 29,
+      "lathe_manufacturer": "Maier",
+      "machine_model": "Maier MLK 32/38",
+      "bar_feeder_model_original": "FMB Turbo 338",
+      "bar_feeder_model_normalized": "FMB Turbo 338",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": "14 in",
+      "distance_in_eighths": 112,
+      "distance_in_inches_decimal": 14,
+      "distance_original": "14",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 33,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "SR10J type C",
+      "bar_feeder_model_original": "MM320",
+      "bar_feeder_model_normalized": "Minuteman 320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": "from Main sheetmetal",
+      "distance_display": "7 1/2 in",
+      "distance_in_eighths": 60,
+      "distance_in_inches_decimal": 7.5,
+      "distance_original": "7.5 from Main sheetmetal",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 34,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "SB16r type E",
+      "bar_feeder_model_original": "MM320",
+      "bar_feeder_model_normalized": "Minuteman 320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "14 in",
+      "distance_in_eighths": 112,
+      "distance_in_inches_decimal": 14,
+      "distance_original": "14\"",
+      "modification_notes": "remove 2 inches from Telescopic tube",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 35,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "SR20R IV type B",
+      "bar_feeder_model_original": "MM320",
+      "bar_feeder_model_normalized": "Minuteman 320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "11 3/4 in",
+      "distance_in_eighths": 94,
+      "distance_in_inches_decimal": 11.75,
+      "distance_original": "11 3/4",
+      "modification_notes": "Cut Telescope to 11 inches colapsed Threaded rod to 16 inches",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 36,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "SB 20",
+      "bar_feeder_model_original": "MM320",
+      "bar_feeder_model_normalized": "Minuteman 320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "16 1/4 in",
+      "distance_in_eighths": 130,
+      "distance_in_inches_decimal": 16.25,
+      "distance_original": "16.25",
+      "modification_notes": "No modificatons to Telescopic tube",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 37,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "Star ST38",
+      "bar_feeder_model_original": "FMB Turbo 338",
+      "bar_feeder_model_normalized": "FMB Turbo 338",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 38,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "SR32 J",
+      "bar_feeder_model_original": "Patriot 332",
+      "bar_feeder_model_normalized": "Patriot 332",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "24 1/2 in",
+      "distance_in_eighths": 196,
+      "distance_in_inches_decimal": 24.5,
+      "distance_original": "24.5",
+      "modification_notes": "Cut Telescope to 11 inches colapsed Threaded rod to 16 inches",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 39,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "Star SR 32JN",
+      "bar_feeder_model_original": "V65 Rebel",
+      "bar_feeder_model_normalized": "V65 Rebel",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "12 3/4 in",
+      "distance_in_eighths": 102,
+      "distance_in_inches_decimal": 12.75,
+      "distance_original": "12.75",
+      "modification_notes": "Should use telescopic tube",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 40,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "Sr32JN",
+      "bar_feeder_model_original": "MM320",
+      "bar_feeder_model_normalized": "Minuteman 320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "9 in",
+      "distance_in_eighths": 72,
+      "distance_in_inches_decimal": 9,
+      "distance_original": "9",
+      "modification_notes": "No Modifications to Telescopic tube",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 41,
+      "lathe_manufacturer": "STAR",
+      "machine_model": "SV32",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "24 1/2 in",
+      "distance_in_eighths": 196,
+      "distance_in_inches_decimal": 24.5,
+      "distance_original": "24.5",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 49,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami BH38",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 50,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami BO385L",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "15 1/2 in",
+      "distance_in_eighths": 124,
+      "distance_in_inches_decimal": 15.5,
+      "distance_original": "15.5",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 51,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami Bo 325",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "29 1/2 in",
+      "distance_in_eighths": 236,
+      "distance_in_inches_decimal": 29.5,
+      "distance_original": "29.5",
+      "modification_notes": "Cut Telescope to 10 in overall colapsed",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 52,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami BO 326",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "29 1/4 in",
+      "distance_in_eighths": 234,
+      "distance_in_inches_decimal": 29.25,
+      "distance_original": "29.25",
+      "modification_notes": "Cut Telescpoic tube 2\" keep drop",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 53,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami GO 385L",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": "Bar feed has reach issues",
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 54,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami SS32",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "26 in",
+      "distance_in_eighths": 208,
+      "distance_in_inches_decimal": 26,
+      "distance_original": "26",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 55,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami SS32",
+      "bar_feeder_model_original": "FMB Turbo 338",
+      "bar_feeder_model_normalized": "FMB Turbo 338",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": null,
+      "distance_in_eighths": null,
+      "distance_in_inches_decimal": null,
+      "distance_original": null,
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": [
+        "missing_install_distance"
+      ]
+    },
+    {
+      "source_row": 56,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami",
+      "bar_feeder_model_original": "Minute Man 320",
+      "bar_feeder_model_normalized": "Minuteman 320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "16 1/2 in",
+      "distance_in_eighths": 132,
+      "distance_in_inches_decimal": 16.5,
+      "distance_original": "16.5",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 57,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami BO 125 II",
+      "bar_feeder_model_original": "FMB Mini Turbo",
+      "bar_feeder_model_normalized": "FMB Mini Turbo",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": "16 1/2 in",
+      "distance_in_eighths": 132,
+      "distance_in_inches_decimal": 16.5,
+      "distance_original": "16.5",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 58,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami BE 12 V",
+      "bar_feeder_model_original": "FMB Mini Turbo",
+      "bar_feeder_model_normalized": "FMB Mini Turbo",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": "15 in",
+      "distance_in_eighths": 120,
+      "distance_in_inches_decimal": 15,
+      "distance_original": "15",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 59,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami S206",
+      "bar_feeder_model_original": "FMB Mini Turbo",
+      "bar_feeder_model_normalized": "FMB Mini Turbo",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": "14 1/2 in",
+      "distance_in_eighths": 116,
+      "distance_in_inches_decimal": 14.5,
+      "distance_original": "14.5",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 60,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tusgami BO125",
+      "bar_feeder_model_original": "Minute Man 320",
+      "bar_feeder_model_normalized": "Minuteman 320",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "16 1/2 in",
+      "distance_in_eighths": 132,
+      "distance_in_inches_decimal": 16.5,
+      "distance_original": "16.5",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 61,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami SS26",
+      "bar_feeder_model_original": "Minute Man 320 Extended",
+      "bar_feeder_model_normalized": "Minuteman 320 Extended",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "15 in",
+      "distance_in_eighths": 120,
+      "distance_in_inches_decimal": 15,
+      "distance_original": "15",
+      "modification_notes": "remove 3 inches from Telescopic tube keep remnant Cut threaded rod to 8 inches",
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 62,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami S207-5AX",
+      "bar_feeder_model_original": "FMB turbo 220",
+      "bar_feeder_model_normalized": "FMB turbo 220",
+      "bar_feeder_manufacturer_inferred": "FMB",
+      "distance_context": null,
+      "distance_display": "14 1/2 in",
+      "distance_in_eighths": 116,
+      "distance_in_inches_decimal": 14.5,
+      "distance_original": "14.5",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    },
+    {
+      "source_row": 63,
+      "lathe_manufacturer": "Tsugami",
+      "machine_model": "Tsugami SS327-5AX",
+      "bar_feeder_model_original": "Patriot 338",
+      "bar_feeder_model_normalized": "Patriot 338",
+      "bar_feeder_manufacturer_inferred": "Edge Technologies",
+      "distance_context": null,
+      "distance_display": "29 in",
+      "distance_in_eighths": 232,
+      "distance_in_inches_decimal": 29,
+      "distance_original": "29",
+      "modification_notes": null,
+      "parameter_record": null,
+      "review_flags": []
+    }
+  ],
+  "skipped_rows": [
+    {
+      "reason": "blank_row",
+      "source_row": 2
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 6
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 7
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 10
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 17
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 20
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 23
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 24
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 27
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 30
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 31
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 42
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 43
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 44
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 45
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 46
+    },
+    {
+      "reason": "blank_row",
+      "source_row": 47
+    }
+  ]
+}
