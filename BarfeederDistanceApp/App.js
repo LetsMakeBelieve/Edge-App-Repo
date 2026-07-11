@@ -29,6 +29,15 @@ const FRACTION_OPTIONS = [
   { eighths: 6, label: '3/4' },
   { eighths: 7, label: '7/8' },
 ];
+const MAX_DISTANCE_EIGHTHS = 50 * 8;
+const DISTANCE_WHEEL_OPTIONS = Array.from({ length: MAX_DISTANCE_EIGHTHS }, (_, index) => {
+  const eighths = index + 1;
+
+  return {
+    eighths,
+    label: formatEighthsAsInches(eighths),
+  };
+});
 const BAR_FEEDER_MANUFACTURERS = ['Edge Technologies', 'FMB'];
 const RECENT_LOOKUPS_KEY = 'barfeederdistanceapp:recent-lookups';
 const THEME_MODE_KEY = 'barfeederdistanceapp:theme-mode';
@@ -128,6 +137,8 @@ export default function App() {
   const [distanceRecord, setDistanceRecord] = useState(null);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [lookupMessage, setLookupMessage] = useState('');
+  const [measurementHistory, setMeasurementHistory] = useState([]);
+  const [measurementHistoryMessage, setMeasurementHistoryMessage] = useState('');
   const [measuredWholeInches, setMeasuredWholeInches] = useState('');
   const [measuredFractionEighths, setMeasuredFractionEighths] = useState(0);
   const [submissionNotes, setSubmissionNotes] = useState('');
@@ -324,6 +335,75 @@ export default function App() {
     });
   }, [distanceRecord, selectedBarFeeder, selectedLathe]);
 
+  useEffect(() => {
+    const loadMeasurementHistory = async () => {
+      if (!session || !selectedLathe || !selectedBarFeeder) {
+        setMeasurementHistory([]);
+        setMeasurementHistoryMessage('');
+        return;
+      }
+
+      setMeasurementHistoryMessage('');
+
+      const submissionQuery = supabase
+        .from('user_submissions')
+        .select('distance_in_eighths, distance_mm, created_at')
+        .eq('lathe_name', selectedLathe.name)
+        .eq('bar_feeder_name', selectedBarFeeder.name)
+        .not('distance_in_eighths', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      const queries = [submissionQuery];
+
+      if (distanceRecord?.id) {
+        queries.push(
+          supabase
+            .from('variations')
+            .select('variation_distance_in_eighths, variation_distance_mm, created_at')
+            .eq('distance_id', distanceRecord.id)
+            .not('variation_distance_in_eighths', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(50)
+        );
+      }
+
+      const [submissionsResult, variationsResult] = await Promise.all(queries);
+
+      if (submissionsResult.error || variationsResult?.error) {
+        setMeasurementHistory([]);
+        setMeasurementHistoryMessage(
+          submissionsResult.error?.message ||
+            variationsResult?.error?.message ||
+            'Unable to load measurement history.'
+        );
+        return;
+      }
+
+      const submissionMeasurements = (submissionsResult.data ?? [])
+        .map((submission) => ({
+          created_at: submission.created_at,
+          eighths:
+            submission.distance_in_eighths ??
+            millimetersToNearestEighths(submission.distance_mm),
+          source: 'submission',
+        }))
+        .filter((measurement) => Number.isInteger(measurement.eighths));
+      const variationMeasurements = (variationsResult?.data ?? [])
+        .map((variation) => ({
+          created_at: variation.created_at,
+          eighths:
+            variation.variation_distance_in_eighths ??
+            millimetersToNearestEighths(variation.variation_distance_mm),
+          source: 'variation',
+        }))
+        .filter((measurement) => Number.isInteger(measurement.eighths));
+      setMeasurementHistory([...submissionMeasurements, ...variationMeasurements]);
+    };
+
+    loadMeasurementHistory();
+  }, [distanceRecord, selectedBarFeeder, selectedLathe, session]);
+
   const validateCompanyCredentials = () => {
     if (!hasSupabaseConfig) {
       setAuthMessage('Add your Supabase URL and anon key to a .env file.');
@@ -449,7 +529,7 @@ export default function App() {
     setIsSavingSubmission(true);
     setSubmissionMessage('');
 
-    const { error } = await supabase.from('user_submissions').insert({
+    const { error: submissionError } = await supabase.from('user_submissions').insert({
       user_id: session.user.id,
       lathe_name: selectedLathe.name,
       bar_feeder_name: selectedBarFeeder.name,
@@ -458,17 +538,49 @@ export default function App() {
       notes: submissionNotes.trim() || null,
     });
 
-    setIsSavingSubmission(false);
-
-    if (error) {
-      setSubmissionMessage(error.message);
+    if (submissionError) {
+      setIsSavingSubmission(false);
+      setSubmissionMessage(submissionError.message);
       return;
     }
 
+    const { data: savedDistance, error: distanceError } = await supabase
+      .from('distances')
+      .upsert(
+        {
+          bar_feeder_id: selectedBarFeeder.id,
+          distance_in_eighths: distanceInEighths,
+          distance_mm: distanceMm,
+          lathe_id: selectedLathe.id,
+          notes: submissionNotes.trim() || null,
+        },
+        {
+          onConflict: 'lathe_id,bar_feeder_id',
+        }
+      )
+      .select('*')
+      .single();
+
+    setIsSavingSubmission(false);
+
+    if (distanceError) {
+      setSubmissionMessage(distanceError.message);
+      return;
+    }
+
+    setDistanceRecord(savedDistance);
+    setMeasurementHistory((currentHistory) => [
+      {
+        created_at: savedDistance.created_at,
+        eighths: distanceInEighths,
+        source: 'submission',
+      },
+      ...currentHistory,
+    ]);
     setMeasuredWholeInches('');
     setMeasuredFractionEighths(0);
     setSubmissionNotes('');
-    setSubmissionMessage('Measurement submitted for review.');
+    setSubmissionMessage('Measurement saved to the database.');
   };
 
   const saveVariation = async () => {
@@ -513,6 +625,14 @@ export default function App() {
     setVariationWholeInches('');
     setVariationFractionEighths(0);
     setVariationReason('');
+    setMeasurementHistory((currentHistory) => [
+      {
+        created_at: new Date().toISOString(),
+        eighths: variationInEighths,
+        source: 'variation',
+      },
+      ...currentHistory,
+    ]);
     setVariationMessage('Variation saved.');
   };
 
@@ -640,11 +760,13 @@ export default function App() {
         </View>
       ) : (
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
           style={styles.appKeyboardContainer}
         >
         <ScrollView
+          automaticallyAdjustKeyboardInsets
+          contentInsetAdjustmentBehavior="automatic"
           style={styles.contentScroll}
           contentContainerStyle={styles.content}
           keyboardDismissMode="on-drag"
@@ -726,6 +848,8 @@ export default function App() {
             lookupMessage={lookupMessage}
             measuredFractionEighths={measuredFractionEighths}
             measuredWholeInches={measuredWholeInches}
+            measurementHistory={measurementHistory}
+            measurementHistoryMessage={measurementHistoryMessage}
             onMeasuredFractionChange={setMeasuredFractionEighths}
             onMeasuredWholeInchesChange={setMeasuredWholeInches}
             onSaveMeasuredDistance={saveMeasuredDistance}
@@ -1012,7 +1136,9 @@ function AuthPanel({
       style={styles.authContainer}
     >
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={styles.authScrollContent}
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.authPanel}>
@@ -1451,6 +1577,8 @@ function DistanceResult({
   lookupMessage,
   measuredFractionEighths,
   measuredWholeInches,
+  measurementHistory,
+  measurementHistoryMessage,
   onMeasuredFractionChange,
   onMeasuredWholeInchesChange,
   onSaveMeasuredDistance,
@@ -1507,12 +1635,16 @@ function DistanceResult({
           Take the measurement and submit it for review.
         </Text>
 
-        <InchDistanceInput
+        <MeasurementDistribution
+          history={measurementHistory}
+          message={measurementHistoryMessage}
+        />
+
+        <DistanceWheelInput
           fractionEighths={measuredFractionEighths}
           label="Measured Distance"
           onFractionChange={onMeasuredFractionChange}
           onWholeInchesChange={onMeasuredWholeInchesChange}
-          textInputProps={textInputProps}
           wholeInches={measuredWholeInches}
         />
 
@@ -1559,6 +1691,11 @@ function DistanceResult({
         <Text style={styles.noteText}>{publicNotes}</Text>
       ) : null}
 
+      <MeasurementDistribution
+        history={measurementHistory}
+        message={measurementHistoryMessage}
+      />
+
       <View style={styles.divider} />
 
       <Text style={styles.variationTitle}>Used a different measurement?</Text>
@@ -1566,12 +1703,11 @@ function DistanceResult({
         Save the measurement used and explain the install complication.
       </Text>
 
-      <InchDistanceInput
+      <DistanceWheelInput
         fractionEighths={variationFractionEighths}
         label="Measurement Used"
         onFractionChange={onVariationFractionChange}
         onWholeInchesChange={onVariationWholeInchesChange}
-        textInputProps={textInputProps}
         wholeInches={variationWholeInches}
       />
 
@@ -1600,75 +1736,122 @@ function DistanceResult({
   );
 }
 
-function InchDistanceInput({
+function DistanceWheelInput({
   fractionEighths,
   label,
   onFractionChange,
   onWholeInchesChange,
-  textInputProps,
   wholeInches,
 }) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const selectedFraction = FRACTION_OPTIONS.find(
-    (option) => option.eighths === fractionEighths
-  );
+  const selectedEighths = getDistanceSelectionEighths(wholeInches, fractionEighths);
+  const selectedLabel = selectedEighths
+    ? formatEighthsAsInches(selectedEighths)
+    : 'Select distance';
 
   return (
     <View>
       <Text style={styles.inputLabel}>{label}</Text>
-      <View style={styles.inchInputRow}>
-        <View style={styles.wholeInchesField}>
-          <TextInput
-            keyboardType="number-pad"
-            onChangeText={onWholeInchesChange}
-            placeholder="Inches"
-            style={[styles.input, styles.inchNumberInput]}
-            value={wholeInches}
-            {...textInputProps}
-          />
-        </View>
-        <View style={styles.fractionField}>
-          <Pressable
-            onPress={() => setIsDropdownOpen((isOpen) => !isOpen)}
-            style={styles.fractionButton}
-          >
-            <Text style={styles.fractionButtonText}>
-              {selectedFraction?.label ?? '0'}
-            </Text>
-          </Pressable>
-        </View>
-        <Text style={styles.inchUnit}>in</Text>
+      <View style={styles.distanceWheelHeader}>
+        <Text style={styles.distanceWheelValue}>{selectedLabel}</Text>
+        <Text style={styles.distanceWheelHint}>Swipe to choose up to 50 in</Text>
       </View>
+      <ScrollView
+        horizontal
+        keyboardShouldPersistTaps="handled"
+        showsHorizontalScrollIndicator={false}
+        style={styles.distanceWheel}
+      >
+        {DISTANCE_WHEEL_OPTIONS.map((option) => {
+          const isSelected = option.eighths === selectedEighths;
+          const wholeInchesOption = Math.floor(option.eighths / 8);
+          const fractionEighthsOption = option.eighths % 8;
 
-      {isDropdownOpen ? (
-        <View style={styles.fractionMenu}>
-          {FRACTION_OPTIONS.map((option) => (
+          return (
             <Pressable
               key={option.eighths}
               onPress={() => {
-                onFractionChange(option.eighths);
-                setIsDropdownOpen(false);
+                onWholeInchesChange(String(wholeInchesOption));
+                onFractionChange(fractionEighthsOption);
               }}
               style={[
-                styles.fractionOption,
-                option.eighths === fractionEighths && styles.selectedFractionOption,
+                styles.distanceWheelOption,
+                isSelected && styles.selectedDistanceWheelOption,
               ]}
             >
               <Text
                 style={[
-                  styles.fractionOptionText,
-                  option.eighths === fractionEighths &&
-                    styles.selectedFractionOptionText,
+                  styles.distanceWheelOptionText,
+                  isSelected && styles.selectedDistanceWheelOptionText,
                 ]}
               >
-                {option.label}
+                {option.label.replace(' in', '')}
               </Text>
             </Pressable>
-          ))}
-        </View>
-      ) : null}
+          );
+        })}
+      </ScrollView>
     </View>
   );
+}
+
+function MeasurementDistribution({ history, message }) {
+  const distribution = getMeasurementDistribution(history);
+
+  if (message) {
+    return <Text style={styles.formMessage}>{message}</Text>;
+  }
+
+  if (distribution.totalMeasurements < 2 || distribution.rows.length < 2) {
+    return null;
+  }
+
+  return (
+    <View style={styles.measurementGraph}>
+      <Text style={styles.measurementGraphTitle}>Measurements Used</Text>
+      <Text style={styles.measurementGraphSubtitle}>
+        {distribution.totalMeasurements} submitted measurements for this install
+      </Text>
+      {distribution.rows.map((row) => (
+        <View key={row.eighths} style={styles.measurementGraphRow}>
+          <Text style={styles.measurementGraphLabel}>
+            {formatEighthsAsInches(row.eighths)}
+          </Text>
+          <View style={styles.measurementGraphTrack}>
+            <View
+              style={[
+                styles.measurementGraphBar,
+                { flex: row.count / distribution.maxCount },
+              ]}
+            />
+            <View style={{ flex: 1 - row.count / distribution.maxCount }} />
+          </View>
+          <Text style={styles.measurementGraphCount}>{row.count}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function getMeasurementDistribution(history) {
+  const counts = new Map();
+
+  history.forEach((measurement) => {
+    if (!Number.isInteger(measurement.eighths)) {
+      return;
+    }
+
+    counts.set(measurement.eighths, (counts.get(measurement.eighths) ?? 0) + 1);
+  });
+
+  const rows = [...counts.entries()]
+    .map(([eighths, count]) => ({ count, eighths }))
+    .sort((left, right) => left.eighths - right.eighths);
+
+  return {
+    maxCount: rows.reduce((maxCount, row) => Math.max(maxCount, row.count), 1),
+    rows,
+    totalMeasurements: rows.reduce((total, row) => total + row.count, 0),
+  };
 }
 
 function createStyles(theme) {
@@ -1737,7 +1920,7 @@ function createStyles(theme) {
   content: {
     gap: 16,
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 140,
   },
   contentScroll: {
     flex: 1,
@@ -2202,6 +2385,105 @@ function createStyles(theme) {
     lineHeight: 20,
     marginTop: 12,
     padding: 12,
+  },
+  distanceWheelHeader: {
+    alignItems: 'center',
+    backgroundColor: theme.background,
+    borderColor: theme.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  distanceWheelValue: {
+    color: theme.text,
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  distanceWheelHint: {
+    color: theme.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  distanceWheel: {
+    marginHorizontal: -16,
+    marginTop: 10,
+    paddingLeft: 16,
+  },
+  distanceWheelOption: {
+    alignItems: 'center',
+    backgroundColor: theme.background,
+    borderColor: theme.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginRight: 8,
+    minHeight: 52,
+    minWidth: 70,
+    paddingHorizontal: 10,
+  },
+  selectedDistanceWheelOption: {
+    backgroundColor: theme.accentMuted,
+    borderColor: theme.accent,
+  },
+  distanceWheelOptionText: {
+    color: theme.textSoft,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  selectedDistanceWheelOptionText: {
+    color: theme.accent,
+  },
+  measurementGraph: {
+    backgroundColor: theme.background,
+    borderColor: theme.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 14,
+    padding: 12,
+  },
+  measurementGraphTitle: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  measurementGraphSubtitle: {
+    color: theme.textSubtle,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  measurementGraphRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  measurementGraphLabel: {
+    color: theme.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    width: 74,
+  },
+  measurementGraphTrack: {
+    backgroundColor: theme.border,
+    borderRadius: 999,
+    flex: 1,
+    flexDirection: 'row',
+    height: 12,
+    overflow: 'hidden',
+  },
+  measurementGraphBar: {
+    backgroundColor: theme.accent,
+  },
+  measurementGraphCount: {
+    color: theme.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'right',
+    width: 18,
   },
   divider: {
     backgroundColor: theme.border,
