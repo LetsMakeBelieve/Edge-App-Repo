@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -120,6 +121,7 @@ export default function App() {
   const [lathes, setLathes] = useState([]);
   const [barFeeders, setBarFeeders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedLatheId, setSelectedLatheId] = useState(null);
   const [selectedBarFeederId, setSelectedBarFeederId] = useState(null);
@@ -152,6 +154,11 @@ export default function App() {
   const theme = isDarkMode ? darkTheme : lightTheme;
   styles = createStyles(theme);
   const textInputProps = getTextInputThemeProps(theme);
+  const selectedLathe = lathes.find((lathe) => lathe.id === selectedLatheId);
+  const selectedBarFeeder = barFeeders.find(
+    (barFeeder) => barFeeder.id === selectedBarFeederId
+  );
+  const hasSelection = Boolean(selectedLathe && selectedBarFeeder);
 
   useEffect(() => {
     if (!hasSupabaseConfig) {
@@ -209,8 +216,8 @@ export default function App() {
       return;
     }
 
-    setLathes(lathesResult.data ?? []);
-    setBarFeeders(barFeedersResult.data ?? []);
+    setLathes(canonicalizeEquipmentList(lathesResult.data ?? []));
+    setBarFeeders(canonicalizeEquipmentList(barFeedersResult.data ?? []));
     setIsLoading(false);
   }, []);
 
@@ -405,11 +412,11 @@ export default function App() {
     setDistanceRecord(null);
   };
 
-  const selectedLathe = lathes.find((lathe) => lathe.id === selectedLatheId);
-  const selectedBarFeeder = barFeeders.find(
-    (barFeeder) => barFeeder.id === selectedBarFeederId
-  );
-  const hasSelection = Boolean(selectedLathe && selectedBarFeeder);
+  const refreshEquipment = async () => {
+    setIsRefreshing(true);
+    await loadEquipment();
+    setIsRefreshing(false);
+  };
 
   const toggleThemeMode = () => {
     setThemeMode((currentMode) => {
@@ -511,7 +518,7 @@ export default function App() {
 
   const addLatheModel = async () => {
     const modelName = newLatheName.trim();
-    const manufacturer = newLatheManufacturer.trim();
+    const manufacturer = normalizeManufacturerName(newLatheManufacturer);
 
     if (!modelName) {
       setLatheMessage('Enter a lathe model name.');
@@ -540,7 +547,7 @@ export default function App() {
     }
 
     setLathes((currentLathes) =>
-      [...currentLathes, data].sort((left, right) =>
+      mergeModelsByCanonicalName(currentLathes, data).sort((left, right) =>
         formatModelSortName(left).localeCompare(formatModelSortName(right))
       )
     );
@@ -552,7 +559,7 @@ export default function App() {
 
   const addBarFeederModel = async () => {
     const modelName = newBarFeederName.trim();
-    const manufacturer = newBarFeederManufacturer;
+    const manufacturer = normalizeManufacturerName(newBarFeederManufacturer);
 
     if (!modelName) {
       setBarFeederMessage('Enter a bar feeder model name.');
@@ -576,7 +583,7 @@ export default function App() {
     }
 
     setBarFeeders((currentBarFeeders) =>
-      [...currentBarFeeders, data].sort((left, right) =>
+      mergeModelsByCanonicalName(currentBarFeeders, data).sort((left, right) =>
         formatModelSortName(left).localeCompare(formatModelSortName(right))
       )
     );
@@ -632,7 +639,27 @@ export default function App() {
           </Pressable>
         </View>
       ) : (
-        <ScrollView style={styles.contentScroll} contentContainerStyle={styles.content}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+          style={styles.appKeyboardContainer}
+        >
+        <ScrollView
+          style={styles.contentScroll}
+          contentContainerStyle={styles.content}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              colors={[theme.accent]}
+              onRefresh={refreshEquipment}
+              progressBackgroundColor={theme.panel}
+              refreshing={isRefreshing}
+              tintColor={theme.accent}
+              titleColor={theme.textSoft}
+            />
+          }
+        >
           <View style={styles.signedInBar}>
             <View style={styles.signedInInfo}>
               <Text style={styles.signedInLabel}>Signed in</Text>
@@ -720,6 +747,7 @@ export default function App() {
             textInputProps={textInputProps}
           />
         </ScrollView>
+        </KeyboardAvoidingView>
       )}
     </SafeAreaView>
   );
@@ -768,11 +796,12 @@ function formatEighthsAsInches(eighths) {
 }
 
 function formatModelSortName(model) {
-  return `${model.manufacturer ?? ''} ${model.name}`;
+  return `${normalizeManufacturerName(model.manufacturer) ?? ''} ${model.name}`;
 }
 
 function getTextInputThemeProps(theme) {
   return {
+    keyboardAppearance: theme === darkTheme ? 'dark' : 'light',
     placeholderTextColor: theme.placeholder,
     selectionColor: theme.accent,
   };
@@ -782,20 +811,130 @@ function normalizeSearchText(value) {
   return String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function getCanonicalKey(value) {
+  return normalizeSearchText(value);
+}
+
+function normalizeManufacturerName(value) {
+  const trimmed = String(value ?? '').trim().replace(/\s+/g, ' ');
+
+  if (!trimmed) {
+    return '';
+  }
+
+  const knownManufacturer = [
+    ...BAR_FEEDER_MANUFACTURERS,
+    'STAR',
+    'Mazak',
+    'Okuma',
+    'Doosan',
+    'DN Solutions',
+    'Haas',
+    'Miyano',
+    'Citizen',
+    'Tsugami',
+    'Hardinge',
+  ].find((manufacturer) => getCanonicalKey(manufacturer) === getCanonicalKey(trimmed));
+
+  if (knownManufacturer) {
+    return knownManufacturer;
+  }
+
+  return trimmed
+    .split(' ')
+    .map((part) => {
+      if (!part) {
+        return part;
+      }
+
+      if (part.length <= 3 && part === part.toUpperCase()) {
+        return part;
+      }
+
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
+function mergeModelsByCanonicalName(currentModels, nextModel) {
+  const nextKey = `${getCanonicalKey(nextModel.manufacturer)}::${getCanonicalKey(
+    nextModel.name
+  )}`;
+  const existingModel = currentModels.find(
+    (model) =>
+      `${getCanonicalKey(model.manufacturer)}::${getCanonicalKey(model.name)}` === nextKey
+  );
+
+  if (existingModel) {
+    return currentModels.map((model) =>
+      model.id === existingModel.id ? { ...model, ...nextModel } : model
+    );
+  }
+
+  return [...currentModels, nextModel];
+}
+
+function canonicalizeEquipmentList(models) {
+  const modelMap = new Map();
+
+  models.forEach((model) => {
+    const normalizedModel = {
+      ...model,
+      manufacturer: normalizeManufacturerName(model.manufacturer),
+      name: String(model.name ?? '').trim().replace(/\s+/g, ' '),
+    };
+    const key = `${getCanonicalKey(normalizedModel.manufacturer)}::${getCanonicalKey(
+      normalizedModel.name
+    )}`;
+
+    if (!modelMap.has(key)) {
+      modelMap.set(key, normalizedModel);
+      return;
+    }
+
+    const existingModel = modelMap.get(key);
+    const preferredModel =
+      new Date(normalizedModel.created_at ?? 0) < new Date(existingModel.created_at ?? 0)
+        ? normalizedModel
+        : existingModel;
+
+    modelMap.set(key, preferredModel);
+  });
+
+  return [...modelMap.values()].sort((left, right) =>
+    formatModelSortName(left).localeCompare(formatModelSortName(right))
+  );
+}
+
 function getUniqueManufacturers(models) {
-  return [
-    ...new Set(
-      models.map((model) => model.manufacturer).filter((manufacturer) => manufacturer)
-    ),
-  ].sort((left, right) => left.localeCompare(right));
+  const manufacturerMap = new Map();
+
+  models.forEach((model) => {
+    const manufacturer = normalizeManufacturerName(model.manufacturer);
+
+    if (!manufacturer) {
+      return;
+    }
+
+    const key = getCanonicalKey(manufacturer);
+    const existingManufacturer = manufacturerMap.get(key);
+
+    if (!existingManufacturer || manufacturer < existingManufacturer) {
+      manufacturerMap.set(key, manufacturer);
+    }
+  });
+
+  return [...manufacturerMap.values()].sort((left, right) => left.localeCompare(right));
 }
 
 function getBarFeederManufacturerRank(manufacturer) {
-  if (manufacturer === 'Edge Technologies') {
+  const normalizedManufacturer = normalizeManufacturerName(manufacturer);
+
+  if (normalizedManufacturer === 'Edge Technologies') {
     return 0;
   }
 
-  if (manufacturer === 'FMB') {
+  if (normalizedManufacturer === 'FMB') {
     return 1;
   }
 
@@ -817,15 +956,19 @@ function groupBarFeeders(models) {
   const groups = [];
 
   sortedModels.forEach((model) => {
-    const title = model.manufacturer || 'Other';
-    let group = groups.find((candidate) => candidate.title === title);
+    const title = normalizeManufacturerName(model.manufacturer) || 'Other';
+    const titleKey = getCanonicalKey(title);
+    let group = groups.find((candidate) => candidate.titleKey === titleKey);
 
     if (!group) {
-      group = { items: [], title };
+      group = { items: [], title, titleKey };
       groups.push(group);
     }
 
-    group.items.push(model);
+    group.items.push({
+      ...model,
+      manufacturer: title,
+    });
   });
 
   return groups;
@@ -951,18 +1094,24 @@ function LatheSelector({
 }) {
   const [isManufacturerOpen, setIsManufacturerOpen] = useState(false);
   const [isModelOpen, setIsModelOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
   const selectedModel = data.find((item) => item.id === selectedId);
   const manufacturers = getUniqueManufacturers(data);
   const selectedManufacturer =
-    selectedModel?.manufacturer || manufacturers[0] || 'Manufacturer';
+    normalizeManufacturerName(selectedModel?.manufacturer) ||
+    manufacturers[0] ||
+    'Manufacturer';
+  const selectedManufacturerKey = getCanonicalKey(selectedManufacturer);
+  const searchText = normalizeSearchText(modelSearch);
   const filteredModels = data.filter((item) => {
-    const sameManufacturer = item.manufacturer === selectedManufacturer;
-    const matchesSearch = normalizeSearchText(
-      `${item.manufacturer} ${item.name}`
-    ).includes(normalizeSearchText(modelSearch));
+    const sameManufacturer =
+      getCanonicalKey(item.manufacturer) === selectedManufacturerKey;
+    const matchesSearch = normalizeSearchText(`${item.manufacturer} ${item.name}`).includes(
+      searchText
+    );
 
-    return sameManufacturer && matchesSearch;
+    return searchText ? matchesSearch : sameManufacturer;
   });
 
   return (
@@ -984,6 +1133,8 @@ function LatheSelector({
           {...textInputProps}
         />
 
+        <Text style={styles.orDivider}>or</Text>
+
         <Text style={styles.inputLabel}>Manufacturer</Text>
         <Pressable
           onPress={() => setIsManufacturerOpen((isOpen) => !isOpen)}
@@ -999,7 +1150,7 @@ function LatheSelector({
                 key={manufacturer}
                 onPress={() => {
                   const firstModel = data.find(
-                    (item) => item.manufacturer === manufacturer
+                    (item) => getCanonicalKey(item.manufacturer) === getCanonicalKey(manufacturer)
                   );
                   setIsManufacturerOpen(false);
                   setIsModelOpen(true);
@@ -1046,7 +1197,11 @@ function LatheSelector({
                       selectedId === item.id && styles.selectedDropdownText,
                     ]}
                   >
-                    {item.name}
+                    {searchText
+                      ? `${normalizeManufacturerName(item.manufacturer) || 'Other'} · ${
+                          item.name
+                        }`
+                      : item.name}
                   </Text>
                 </Pressable>
               ))
@@ -1057,6 +1212,17 @@ function LatheSelector({
         ) : null}
       </View>
 
+      <Pressable
+        onPress={() => setIsAddOpen((isOpen) => !isOpen)}
+        style={styles.addDropdownToggle}
+      >
+        <Text style={styles.addDropdownText}>
+          {isAddOpen ? `Hide ${submitLabel}` : submitLabel}
+        </Text>
+        <Text style={styles.addDropdownIcon}>{isAddOpen ? '-' : '+'}</Text>
+      </Pressable>
+
+      {isAddOpen ? (
       <View style={styles.addModelPanel}>
         <Text style={styles.inputLabel}>{manufacturerInputLabel}</Text>
         <TextInput
@@ -1088,6 +1254,7 @@ function LatheSelector({
           </Text>
         </Pressable>
       </View>
+      ) : null}
     </View>
   );
 }
@@ -1111,6 +1278,7 @@ function BarFeederSelector({
   title,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const selectedModel = data.find((item) => item.id === selectedId);
   const groupedModels = groupBarFeeders(data);
 
@@ -1169,6 +1337,17 @@ function BarFeederSelector({
         ) : null}
       </View>
 
+      <Pressable
+        onPress={() => setIsAddOpen((isDropdownOpen) => !isDropdownOpen)}
+        style={styles.addDropdownToggle}
+      >
+        <Text style={styles.addDropdownText}>
+          {isAddOpen ? `Hide ${submitLabel}` : submitLabel}
+        </Text>
+        <Text style={styles.addDropdownIcon}>{isAddOpen ? '-' : '+'}</Text>
+      </Pressable>
+
+      {isAddOpen ? (
       <View style={styles.addModelPanel}>
         <ManufacturerSelector
           onSelect={onManufacturerInputChange}
@@ -1195,6 +1374,7 @@ function BarFeederSelector({
           </Text>
         </Pressable>
       </View>
+      ) : null}
     </View>
   );
 }
@@ -1505,6 +1685,9 @@ function createStyles(theme) {
     paddingTop: 28,
     paddingBottom: 20,
   },
+  appKeyboardContainer: {
+    flex: 1,
+  },
   headerTopRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -1729,6 +1912,26 @@ function createStyles(theme) {
     borderTopWidth: 1,
     padding: 16,
   },
+  addDropdownToggle: {
+    alignItems: 'center',
+    backgroundColor: theme.panelAlt,
+    borderTopColor: theme.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  addDropdownText: {
+    color: theme.accent,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  addDropdownIcon: {
+    color: theme.accent,
+    fontSize: 20,
+    fontWeight: '800',
+  },
   selectorPanel: {
     padding: 16,
   },
@@ -1747,6 +1950,14 @@ function createStyles(theme) {
     color: theme.text,
     fontSize: 16,
     fontWeight: '700',
+  },
+  orDivider: {
+    color: theme.muted,
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 12,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   dropdownList: {
     backgroundColor: theme.panel,
