@@ -1,0 +1,201 @@
+Windows setup instructions for BarfeederDistanceApp
+===================================================
+
+This guide explains how to clone the repository on a Windows computer, install
+the app dependencies, connect the required environment variables, and open the
+app on a phone with Expo Go.
+
+
+1. Install required software
+----------------------------
+
+Install these tools on the Windows computer:
+
+1. Git for Windows
+   Download and install Git from:
+   https://git-scm.com/download/win
+
+2. Node.js LTS
+   Download and install the LTS version from:
+   https://nodejs.org/
+
+3. Expo Go on your phone
+   Install "Expo Go" from the iOS App Store or Google Play Store.
+
+After installing Git and Node.js, open a new PowerShell window and verify both
+tools are available:
+
+    git --version
+    node --version
+    npm --version
+
+
+2. Clone the repository
+-----------------------
+
+Choose a folder where you want the project to live. For example, to put it in
+your Documents folder:
+
+    cd $HOME\Documents
+
+Clone the repository:
+
+    git clone <REPOSITORY_URL>
+
+Replace <REPOSITORY_URL> with the GitHub repository URL.
+
+Enter the app folder:
+
+    cd Edge-App-Repo\BarfeederDistanceApp
+
+
+3. Install app dependencies
+---------------------------
+
+From inside the BarfeederDistanceApp folder, run:
+
+    npm install
+
+If you want an exact install from the checked-in lockfile, you can use this
+instead:
+
+    npm ci
+
+Use npm install if you are unsure. It is usually the easiest option on a local
+Windows computer.
+
+
+4. Create the .env file
+-----------------------
+
+The app uses Supabase. Create a file named .env inside the
+BarfeederDistanceApp folder:
+
+    Edge-App-Repo\BarfeederDistanceApp\.env
+
+Add these variables:
+
+    EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
+    EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+Replace the placeholder values with the real values from Ona secrets or your
+Supabase project settings.
+
+Important:
+
+- Do not commit the .env file to git.
+- This repository already ignores .env.
+- The EXPO_PUBLIC_SUPABASE_ANON_KEY value is client-visible in an Expo app, so
+  only use the Supabase anon key here.
+- Do not put SUPABASE_SERVICE_ROLE_KEY in this Expo app .env for normal phone
+  testing. The service role key is an admin secret and must not be exposed to a
+  mobile app.
+
+
+5. Start Expo
+-------------
+
+From inside the BarfeederDistanceApp folder, run:
+
+    npx expo start
+
+Expo will start Metro and show a QR code in the terminal.
+
+
+6. Open the app on your phone
+-----------------------------
+
+Make sure your phone and Windows computer are on the same Wi-Fi network.
+
+Then:
+
+1. Open Expo Go on your phone.
+2. Scan the QR code from the terminal.
+3. Wait for the JavaScript bundle to build and load.
+
+If the phone cannot connect, start Expo with tunnel mode:
+
+    npx expo start --tunnel
+
+The first time you use tunnel mode, Expo may ask to install @expo/ngrok. Accept
+the prompt. After the tunnel starts, scan the new QR code with Expo Go.
+
+
+7. Common fixes
+---------------
+
+If Expo does not pick up new .env values, stop the server with Ctrl+C and start
+it again:
+
+    npx expo start
+
+If the app still appears stale, start Expo with a cleared cache:
+
+    npx expo start --clear
+
+If Expo Go shows an error such as "private properties are not supported", stop
+Expo with Ctrl+C, make sure the Expo Go app on your phone is updated, then start
+Metro with a cleared cache:
+
+    npx expo start --clear
+
+After the QR code appears, fully close and reopen Expo Go on your phone before
+scanning again.
+
+If the same error still appears, verify that your Windows checkout has the
+Expo Babel config and the SDK-compatible Babel preset:
+
+    dir babel.config.js
+    node -e "console.log(require('babel-preset-expo/package.json').version)"
+
+The version should start with 54. If the file is missing or the version is not
+54.x, pull the latest repository changes, reinstall dependencies, and restart
+Expo with a cleared cache:
+
+    git pull
+    npm install
+    npx expo start --clear
+
+If the error still does not clear, remove the local dependency folder and
+reinstall from scratch:
+
+    rmdir /s /q node_modules
+    npm install
+    npx expo start --clear
+
+On iPhone, if Expo Go continues showing the same old error after these steps,
+delete Expo Go from the phone, reinstall it from the App Store, and scan the new
+QR code again. This clears any stale app state Expo Go kept locally.
+
+If dependency installation fails, check that you are using a recent Node.js LTS
+version:
+
+    node --version
+
+If Windows Firewall asks whether Node.js can access the network, allow access
+on private networks. This is needed for your phone to reach the development
+server over Wi-Fi.
+
+
+8. Useful commands
+------------------
+
+Start the Expo development server:
+
+    npx expo start
+
+Start Expo with tunnel mode:
+
+    npx expo start --tunnel
+
+Start Expo and clear the cache:
+
+    npx expo start --clear
+
+Install dependencies:
+
+    npm install
+
+Stop Expo:
+
+    Ctrl+C
