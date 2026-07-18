@@ -29,15 +29,12 @@ const FRACTION_OPTIONS = [
   { eighths: 6, label: '3/4' },
   { eighths: 7, label: '7/8' },
 ];
-const MAX_DISTANCE_EIGHTHS = 50 * 8;
-const DISTANCE_WHEEL_OPTIONS = Array.from({ length: MAX_DISTANCE_EIGHTHS }, (_, index) => {
-  const eighths = index + 1;
-
-  return {
-    eighths,
-    label: formatEighthsAsInches(eighths),
-  };
-});
+const MAX_DISTANCE_INCHES = 50;
+const MAX_DISTANCE_EIGHTHS = MAX_DISTANCE_INCHES * 8;
+const WHOLE_INCH_OPTIONS = Array.from(
+  { length: MAX_DISTANCE_INCHES + 1 },
+  (_, index) => index
+);
 const BAR_FEEDER_MANUFACTURERS = ['Edge Technologies', 'FMB'];
 const RECENT_LOOKUPS_KEY = 'barfeederdistanceapp:recent-lookups';
 const THEME_MODE_KEY = 'barfeederdistanceapp:theme-mode';
@@ -895,7 +892,9 @@ function getDistanceSelectionEighths(wholeInches, fractionEighths) {
 
   const totalEighths = whole * 8 + fractionEighths;
 
-  return totalEighths > 0 ? totalEighths : null;
+  return totalEighths > 0 && totalEighths <= MAX_DISTANCE_EIGHTHS
+    ? totalEighths
+    : null;
 }
 
 function getDistanceRecordEighths(distanceRecord) {
@@ -1743,6 +1742,8 @@ function DistanceWheelInput({
   onWholeInchesChange,
   wholeInches,
 }) {
+  const selectedWhole = Number.parseInt(wholeInches || '0', 10);
+  const normalizedWhole = Number.isInteger(selectedWhole) ? selectedWhole : 0;
   const selectedEighths = getDistanceSelectionEighths(wholeInches, fractionEighths);
   const selectedLabel = selectedEighths
     ? formatEighthsAsInches(selectedEighths)
@@ -1753,43 +1754,88 @@ function DistanceWheelInput({
       <Text style={styles.inputLabel}>{label}</Text>
       <View style={styles.distanceWheelHeader}>
         <Text style={styles.distanceWheelValue}>{selectedLabel}</Text>
-        <Text style={styles.distanceWheelHint}>Swipe to choose up to 50 in</Text>
+        <Text style={styles.distanceWheelHint}>Scroll inches and eighths</Text>
       </View>
-      <ScrollView
-        horizontal
-        keyboardShouldPersistTaps="handled"
-        showsHorizontalScrollIndicator={false}
-        style={styles.distanceWheel}
-      >
-        {DISTANCE_WHEEL_OPTIONS.map((option) => {
-          const isSelected = option.eighths === selectedEighths;
-          const wholeInchesOption = Math.floor(option.eighths / 8);
-          const fractionEighthsOption = option.eighths % 8;
+      <View style={styles.distanceWheelColumns}>
+        <View style={styles.distanceWheelColumn}>
+          <Text style={styles.distanceWheelColumnLabel}>Inches</Text>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            style={styles.distanceWheel}
+          >
+            {WHOLE_INCH_OPTIONS.map((option) => {
+              const isSelected = option === normalizedWhole;
 
-          return (
-            <Pressable
-              key={option.eighths}
-              onPress={() => {
-                onWholeInchesChange(String(wholeInchesOption));
-                onFractionChange(fractionEighthsOption);
-              }}
-              style={[
-                styles.distanceWheelOption,
-                isSelected && styles.selectedDistanceWheelOption,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.distanceWheelOptionText,
-                  isSelected && styles.selectedDistanceWheelOptionText,
-                ]}
-              >
-                {option.label.replace(' in', '')}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => {
+                    onWholeInchesChange(String(option));
+
+                    if (option === MAX_DISTANCE_INCHES && fractionEighths > 0) {
+                      onFractionChange(0);
+                    }
+                  }}
+                  style={[
+                    styles.distanceWheelOption,
+                    isSelected && styles.selectedDistanceWheelOption,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.distanceWheelOptionText,
+                      isSelected && styles.selectedDistanceWheelOptionText,
+                    ]}
+                  >
+                    {option}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.distanceWheelColumn}>
+          <Text style={styles.distanceWheelColumnLabel}>Eighths</Text>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            style={styles.distanceWheel}
+          >
+            {FRACTION_OPTIONS.map((option) => {
+              const isDisabled =
+                normalizedWhole === MAX_DISTANCE_INCHES && option.eighths > 0;
+              const isSelected = option.eighths === fractionEighths;
+
+              return (
+                <Pressable
+                  disabled={isDisabled}
+                  key={option.eighths}
+                  onPress={() => onFractionChange(option.eighths)}
+                  style={[
+                    styles.distanceWheelOption,
+                    isSelected && styles.selectedDistanceWheelOption,
+                    isDisabled && styles.disabledDistanceWheelOption,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.distanceWheelOptionText,
+                      isSelected && styles.selectedDistanceWheelOptionText,
+                      isDisabled && styles.disabledDistanceWheelOptionText,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </View>
     </View>
   );
 }
@@ -2407,10 +2453,24 @@ function createStyles(theme) {
     fontWeight: '700',
     marginTop: 4,
   },
-  distanceWheel: {
-    marginHorizontal: -16,
+  distanceWheelColumns: {
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 10,
-    paddingLeft: 16,
+  },
+  distanceWheelColumn: {
+    flex: 1,
+  },
+  distanceWheelColumnLabel: {
+    color: theme.textSubtle,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 6,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  distanceWheel: {
+    maxHeight: 176,
   },
   distanceWheelOption: {
     alignItems: 'center',
@@ -2419,14 +2479,16 @@ function createStyles(theme) {
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
-    marginRight: 8,
-    minHeight: 52,
-    minWidth: 70,
+    marginBottom: 8,
+    minHeight: 44,
     paddingHorizontal: 10,
   },
   selectedDistanceWheelOption: {
     backgroundColor: theme.accentMuted,
     borderColor: theme.accent,
+  },
+  disabledDistanceWheelOption: {
+    opacity: 0.4,
   },
   distanceWheelOptionText: {
     color: theme.textSoft,
@@ -2435,6 +2497,9 @@ function createStyles(theme) {
   },
   selectedDistanceWheelOptionText: {
     color: theme.accent,
+  },
+  disabledDistanceWheelOptionText: {
+    color: theme.muted,
   },
   measurementGraph: {
     backgroundColor: theme.background,
