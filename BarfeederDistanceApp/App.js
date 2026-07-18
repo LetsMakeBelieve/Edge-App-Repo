@@ -1,9 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -158,17 +159,11 @@ export default function App() {
   const theme = isDarkMode ? darkTheme : lightTheme;
   styles = createStyles(theme);
   const textInputProps = getTextInputThemeProps(theme);
-  const contentScrollRef = useRef(null);
   const selectedLathe = lathes.find((lathe) => lathe.id === selectedLatheId);
   const selectedBarFeeder = barFeeders.find(
     (barFeeder) => barFeeder.id === selectedBarFeederId
   );
   const hasSelection = Boolean(selectedLathe && selectedBarFeeder);
-  const scrollFocusedInputIntoView = useCallback(() => {
-    setTimeout(() => {
-      contentScrollRef.current?.scrollToEnd({ animated: true });
-    }, 250);
-  }, []);
 
   useEffect(() => {
     if (!hasSupabaseConfig) {
@@ -766,7 +761,6 @@ export default function App() {
         <ScrollView
           automaticallyAdjustKeyboardInsets
           contentInsetAdjustmentBehavior="automatic"
-          ref={contentScrollRef}
           style={styles.contentScroll}
           contentContainerStyle={styles.content}
           keyboardDismissMode="on-drag"
@@ -858,7 +852,6 @@ export default function App() {
             onVariationFractionChange={setVariationFractionEighths}
             onVariationReasonChange={setVariationReason}
             onVariationWholeInchesChange={setVariationWholeInches}
-            onTextInputFocus={scrollFocusedInputIntoView}
             selectedBarFeeder={selectedBarFeeder}
             selectedLathe={selectedLathe}
             submissionMessage={submissionMessage}
@@ -1587,7 +1580,6 @@ function DistanceResult({
   onSaveMeasuredDistance,
   onSaveVariation,
   onSubmissionNotesChange,
-  onTextInputFocus,
   onVariationFractionChange,
   onVariationReasonChange,
   onVariationWholeInchesChange,
@@ -1657,7 +1649,6 @@ function DistanceResult({
         <TextInput
           multiline
           onChangeText={onSubmissionNotesChange}
-          onFocus={onTextInputFocus}
           placeholder="Measurement context, setup notes, machine condition..."
           style={[styles.input, styles.textArea]}
           value={submissionNotes}
@@ -1722,7 +1713,6 @@ function DistanceResult({
       <TextInput
         multiline
         onChangeText={onVariationReasonChange}
-        onFocus={onTextInputFocus}
         placeholder="Explain what prevented the recommended distance..."
         style={[styles.input, styles.textArea]}
         value={variationReason}
@@ -1813,10 +1803,23 @@ function DistanceInchInput({
           </Pressable>
         </View>
       </View>
-      {isFractionMenuOpen ? (
-        <View style={styles.fractionDropdownRow}>
-          <View style={styles.fractionDropdownSpacer} />
-          <View style={styles.fractionMenu}>
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setIsFractionMenuOpen(false)}
+        transparent
+        visible={isFractionMenuOpen}
+      >
+        <Pressable
+          onPress={() => setIsFractionMenuOpen(false)}
+          style={styles.fractionModalBackdrop}
+        >
+          <Pressable style={styles.fractionModalPanel}>
+            <Text style={styles.fractionModalTitle}>Eighths</Text>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              style={styles.fractionMenu}
+            >
             {FRACTION_OPTIONS.map((option) => {
               const isDisabled = isAtMaxWholeInches && option.eighths > 0;
               const isSelected = option.eighths === fractionEighths;
@@ -1847,9 +1850,10 @@ function DistanceInchInput({
                 </Pressable>
               );
             })}
-          </View>
-        </View>
-      ) : null}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -1980,7 +1984,7 @@ function createStyles(theme) {
   content: {
     gap: 16,
     paddingHorizontal: 20,
-    paddingBottom: 220,
+    paddingBottom: 160,
   },
   contentScroll: {
     flex: 1,
@@ -2073,21 +2077,35 @@ function createStyles(theme) {
     fontWeight: '700',
     width: 20,
   },
-  fractionDropdownRow: {
-    flexDirection: 'row',
-    marginTop: 6,
+  fractionModalBackdrop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 20,
   },
-  fractionDropdownSpacer: {
-    flex: 3,
-    marginRight: 28,
+  fractionModalPanel: {
+    backgroundColor: theme.panel,
+    borderColor: theme.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    maxWidth: 360,
+    padding: 12,
+    width: '100%',
+  },
+  fractionModalTitle: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   fractionMenu: {
     backgroundColor: theme.panel,
     borderColor: theme.borderStrong,
     borderRadius: 8,
     borderWidth: 1,
-    flex: 1,
-    minWidth: 86,
+    maxHeight: 270,
     overflow: 'hidden',
   },
   fractionOption: {
