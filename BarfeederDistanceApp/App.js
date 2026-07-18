@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -35,6 +35,12 @@ const WHOLE_INCH_OPTIONS = Array.from(
   { length: MAX_DISTANCE_INCHES + 1 },
   (_, index) => index
 );
+const DISTANCE_WHEEL_ITEM_HEIGHT = 48;
+const DISTANCE_WHEEL_VISIBLE_ITEMS = 5;
+const DISTANCE_WHEEL_HEIGHT =
+  DISTANCE_WHEEL_ITEM_HEIGHT * DISTANCE_WHEEL_VISIBLE_ITEMS;
+const DISTANCE_WHEEL_CENTER_OFFSET =
+  DISTANCE_WHEEL_ITEM_HEIGHT * Math.floor(DISTANCE_WHEEL_VISIBLE_ITEMS / 2);
 const BAR_FEEDER_MANUFACTURERS = ['Edge Technologies', 'FMB'];
 const RECENT_LOOKUPS_KEY = 'barfeederdistanceapp:recent-lookups';
 const THEME_MODE_KEY = 'barfeederdistanceapp:theme-mode';
@@ -1757,84 +1763,146 @@ function DistanceWheelInput({
         <Text style={styles.distanceWheelHint}>Scroll inches and eighths</Text>
       </View>
       <View style={styles.distanceWheelColumns}>
-        <View style={styles.distanceWheelColumn}>
-          <Text style={styles.distanceWheelColumnLabel}>Inches</Text>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-            showsVerticalScrollIndicator={false}
-            style={styles.distanceWheel}
-          >
-            {WHOLE_INCH_OPTIONS.map((option) => {
-              const isSelected = option === normalizedWhole;
+        <DistanceWheelColumn
+          label="Inches"
+          onSelect={(option) => {
+            onWholeInchesChange(String(option.value));
 
-              return (
-                <Pressable
-                  key={option}
-                  onPress={() => {
-                    onWholeInchesChange(String(option));
+            if (option.value === MAX_DISTANCE_INCHES && fractionEighths > 0) {
+              onFractionChange(0);
+            }
+          }}
+          options={WHOLE_INCH_OPTIONS.map((option) => ({
+            label: String(option),
+            value: option,
+          }))}
+          selectedValue={normalizedWhole}
+        />
 
-                    if (option === MAX_DISTANCE_INCHES && fractionEighths > 0) {
-                      onFractionChange(0);
-                    }
-                  }}
+        <DistanceWheelColumn
+          label="Eighths"
+          onSelect={(option) => onFractionChange(option.value)}
+          options={FRACTION_OPTIONS.map((option) => ({
+            label: option.label,
+            value: option.eighths,
+          }))}
+          selectedValue={fractionEighths}
+          isOptionDisabled={(option) =>
+            normalizedWhole === MAX_DISTANCE_INCHES && option.value > 0
+          }
+        />
+      </View>
+    </View>
+  );
+}
+
+function DistanceWheelColumn({
+  isOptionDisabled = () => false,
+  label,
+  onSelect,
+  options,
+  selectedValue,
+}) {
+  const scrollViewRef = useRef(null);
+  const selectedIndex = Math.max(
+    options.findIndex((option) => option.value === selectedValue),
+    0
+  );
+
+  useEffect(() => {
+    scrollViewRef.current?.scrollTo({
+      animated: false,
+      y: selectedIndex * DISTANCE_WHEEL_ITEM_HEIGHT,
+    });
+  }, [selectedIndex]);
+
+  const selectOptionAtOffset = useCallback(
+    (offsetY) => {
+      const selectedOffset = Math.round(offsetY / DISTANCE_WHEEL_ITEM_HEIGHT);
+      const nextIndex = Math.min(Math.max(selectedOffset, 0), options.length - 1);
+      const nextOption = options[nextIndex];
+
+      if (!nextOption || isOptionDisabled(nextOption)) {
+        scrollViewRef.current?.scrollTo({
+          animated: true,
+          y: selectedIndex * DISTANCE_WHEEL_ITEM_HEIGHT,
+        });
+        return;
+      }
+
+      if (nextOption.value !== selectedValue) {
+        onSelect(nextOption);
+      }
+
+      scrollViewRef.current?.scrollTo({
+        animated: true,
+        y: nextIndex * DISTANCE_WHEEL_ITEM_HEIGHT,
+      });
+    },
+    [isOptionDisabled, onSelect, options, selectedIndex, selectedValue]
+  );
+
+  const handleScrollEnd = useCallback(
+    (event) => {
+      selectOptionAtOffset(event.nativeEvent.contentOffset.y);
+    },
+    [selectOptionAtOffset]
+  );
+
+  return (
+    <View style={styles.distanceWheelColumn}>
+      <Text style={styles.distanceWheelColumnLabel}>{label}</Text>
+      <View style={styles.distanceWheelFrame}>
+        <View pointerEvents="none" style={styles.distanceWheelSelectionOverlay} />
+        <ScrollView
+          contentContainerStyle={styles.distanceWheelContent}
+          decelerationRate="fast"
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
+          ref={scrollViewRef}
+          showsVerticalScrollIndicator={false}
+          snapToInterval={DISTANCE_WHEEL_ITEM_HEIGHT}
+          snapToAlignment="start"
+          style={styles.distanceWheel}
+        >
+          {options.map((option, index) => {
+            const isDisabled = isOptionDisabled(option);
+            const isSelected = option.value === selectedValue;
+            const selectedDistance = Math.abs(index - selectedIndex);
+
+            return (
+              <Pressable
+                disabled={isDisabled}
+                key={option.value}
+                onPress={() => {
+                  if (option.value !== selectedValue) {
+                    onSelect(option);
+                  }
+
+                  scrollViewRef.current?.scrollTo({
+                    animated: true,
+                    y: index * DISTANCE_WHEEL_ITEM_HEIGHT,
+                  });
+                }}
+                style={styles.distanceWheelOption}
+              >
+                <Text
                   style={[
-                    styles.distanceWheelOption,
-                    isSelected && styles.selectedDistanceWheelOption,
+                    styles.distanceWheelOptionText,
+                    selectedDistance === 1 && styles.nearDistanceWheelOptionText,
+                    selectedDistance > 1 && styles.farDistanceWheelOptionText,
+                    isSelected && styles.selectedDistanceWheelOptionText,
+                    isDisabled && styles.disabledDistanceWheelOptionText,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.distanceWheelOptionText,
-                      isSelected && styles.selectedDistanceWheelOptionText,
-                    ]}
-                  >
-                    {option}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        <View style={styles.distanceWheelColumn}>
-          <Text style={styles.distanceWheelColumnLabel}>Eighths</Text>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-            showsVerticalScrollIndicator={false}
-            style={styles.distanceWheel}
-          >
-            {FRACTION_OPTIONS.map((option) => {
-              const isDisabled =
-                normalizedWhole === MAX_DISTANCE_INCHES && option.eighths > 0;
-              const isSelected = option.eighths === fractionEighths;
-
-              return (
-                <Pressable
-                  disabled={isDisabled}
-                  key={option.eighths}
-                  onPress={() => onFractionChange(option.eighths)}
-                  style={[
-                    styles.distanceWheelOption,
-                    isSelected && styles.selectedDistanceWheelOption,
-                    isDisabled && styles.disabledDistanceWheelOption,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.distanceWheelOptionText,
-                      isSelected && styles.selectedDistanceWheelOptionText,
-                      isDisabled && styles.disabledDistanceWheelOptionText,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
     </View>
   );
@@ -2469,37 +2537,60 @@ function createStyles(theme) {
     textAlign: 'center',
     textTransform: 'uppercase',
   },
+  distanceWheelFrame: {
+    backgroundColor: theme.background,
+    borderColor: theme.borderStrong,
+    borderRadius: 8,
+    borderWidth: 1,
+    height: DISTANCE_WHEEL_HEIGHT,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  distanceWheelSelectionOverlay: {
+    backgroundColor: theme.accentMuted,
+    borderColor: theme.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    height: DISTANCE_WHEEL_ITEM_HEIGHT,
+    left: 8,
+    position: 'absolute',
+    right: 8,
+    top: DISTANCE_WHEEL_CENTER_OFFSET,
+  },
   distanceWheel: {
-    maxHeight: 176,
+    height: DISTANCE_WHEEL_HEIGHT,
+  },
+  distanceWheelContent: {
+    paddingVertical: DISTANCE_WHEEL_CENTER_OFFSET,
   },
   distanceWheelOption: {
     alignItems: 'center',
-    backgroundColor: theme.background,
-    borderColor: theme.border,
-    borderRadius: 8,
-    borderWidth: 1,
+    height: DISTANCE_WHEEL_ITEM_HEIGHT,
     justifyContent: 'center',
-    marginBottom: 8,
-    minHeight: 44,
     paddingHorizontal: 10,
-  },
-  selectedDistanceWheelOption: {
-    backgroundColor: theme.accentMuted,
-    borderColor: theme.accent,
-  },
-  disabledDistanceWheelOption: {
-    opacity: 0.4,
   },
   distanceWheelOptionText: {
     color: theme.textSoft,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
+  },
+  nearDistanceWheelOptionText: {
+    color: theme.textSubtle,
+    fontSize: 15,
+    opacity: 0.68,
+  },
+  farDistanceWheelOptionText: {
+    color: theme.muted,
+    fontSize: 14,
+    opacity: 0.38,
   },
   selectedDistanceWheelOptionText: {
     color: theme.accent,
+    fontSize: 20,
   },
   disabledDistanceWheelOptionText: {
     color: theme.muted,
+    opacity: 0.24,
   },
   measurementGraph: {
     backgroundColor: theme.background,
