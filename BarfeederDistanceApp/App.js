@@ -1859,41 +1859,119 @@ function DistanceInchInput({
 }
 
 function MeasurementDistribution({ history, message }) {
+  const [isInstallDataVisible, setIsInstallDataVisible] = useState(false);
   const distribution = getMeasurementDistribution(history);
+  const sortedHistory = [...history]
+    .filter((measurement) => Number.isInteger(measurement.eighths))
+    .sort((left, right) => {
+      const leftTime = new Date(left.created_at).getTime();
+      const rightTime = new Date(right.created_at).getTime();
+
+      return rightTime - leftTime;
+    });
 
   if (message) {
     return <Text style={styles.formMessage}>{message}</Text>;
   }
 
-  if (distribution.totalMeasurements < 2 || distribution.rows.length < 2) {
+  if (!sortedHistory.length) {
     return null;
   }
 
   return (
     <View style={styles.measurementGraph}>
-      <Text style={styles.measurementGraphTitle}>Measurements Used</Text>
-      <Text style={styles.measurementGraphSubtitle}>
-        {distribution.totalMeasurements} submitted measurements for this install
-      </Text>
-      {distribution.rows.map((row) => (
-        <View key={row.eighths} style={styles.measurementGraphRow}>
-          <Text style={styles.measurementGraphLabel}>
-            {formatEighthsAsInches(row.eighths)}
+      {distribution.totalMeasurements >= 2 && distribution.rows.length >= 2 ? (
+        <>
+          <Text style={styles.measurementGraphTitle}>Measurements Used</Text>
+          <Text style={styles.measurementGraphSubtitle}>
+            {distribution.totalMeasurements} submitted measurements for this install
           </Text>
-          <View style={styles.measurementGraphTrack}>
+          {distribution.rows.map((row) => (
+            <View key={row.eighths} style={styles.measurementGraphRow}>
+              <Text style={styles.measurementGraphLabel}>
+                {formatEighthsAsInches(row.eighths)}
+              </Text>
+              <View style={styles.measurementGraphTrack}>
+                <View
+                  style={[
+                    styles.measurementGraphBar,
+                    { flex: row.count / distribution.maxCount },
+                  ]}
+                />
+                <View style={{ flex: 1 - row.count / distribution.maxCount }} />
+              </View>
+              <Text style={styles.measurementGraphCount}>{row.count}</Text>
+            </View>
+          ))}
+        </>
+      ) : (
+        <>
+          <Text style={styles.measurementGraphTitle}>Measurements Used</Text>
+          <Text style={styles.measurementGraphSubtitle}>
+            {formatMeasurementCount(sortedHistory.length)} for this install
+          </Text>
+        </>
+      )}
+
+      <Pressable
+        onPress={() => setIsInstallDataVisible((isVisible) => !isVisible)}
+        style={styles.installDataToggle}
+      >
+        <Text style={styles.installDataToggleText}>
+          {isInstallDataVisible ? 'Hide data from other installs' : 'See data from other installs'}
+        </Text>
+        <Text style={styles.installDataToggleIcon}>
+          {isInstallDataVisible ? '^' : 'v'}
+        </Text>
+      </Pressable>
+
+      {isInstallDataVisible ? (
+        <View style={styles.installDataList}>
+          {sortedHistory.slice(0, 12).map((measurement, index) => (
             <View
-              style={[
-                styles.measurementGraphBar,
-                { flex: row.count / distribution.maxCount },
-              ]}
-            />
-            <View style={{ flex: 1 - row.count / distribution.maxCount }} />
-          </View>
-          <Text style={styles.measurementGraphCount}>{row.count}</Text>
+              key={`${measurement.created_at}-${measurement.eighths}-${index}`}
+              style={styles.installDataRow}
+            >
+              <View style={styles.installDataInfo}>
+                <Text style={styles.installDataDistance}>
+                  {formatEighthsAsInches(measurement.eighths)}
+                </Text>
+                <Text style={styles.installDataMeta}>
+                  {formatMeasurementDate(measurement.created_at)}
+                </Text>
+              </View>
+              <Text style={styles.installDataSource}>
+                {measurement.source === 'variation' ? 'Variation' : 'Submitted'}
+              </Text>
+            </View>
+          ))}
+          {sortedHistory.length > 12 ? (
+            <Text style={styles.installDataMore}>
+              Showing 12 of {sortedHistory.length} entries
+            </Text>
+          ) : null}
         </View>
-      ))}
+      ) : null}
     </View>
   );
+}
+
+function formatMeasurementDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Date unavailable';
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function formatMeasurementCount(count) {
+  return `${count} submitted measurement${count === 1 ? '' : 's'}`;
 }
 
 function getMeasurementDistribution(history) {
@@ -2555,6 +2633,73 @@ function createStyles(theme) {
     fontWeight: '800',
     textAlign: 'right',
     width: 18,
+  },
+  installDataToggle: {
+    alignItems: 'center',
+    borderColor: theme.borderStrong,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  installDataToggleText: {
+    color: theme.textSoft,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  installDataToggleIcon: {
+    color: theme.textSubtle,
+    fontSize: 12,
+    fontWeight: '800',
+    marginLeft: 8,
+  },
+  installDataList: {
+    borderColor: theme.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  installDataRow: {
+    alignItems: 'center',
+    borderBottomColor: theme.separator,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  installDataInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  installDataDistance: {
+    color: theme.text,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  installDataMeta: {
+    color: theme.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  installDataSource: {
+    color: theme.textSubtle,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  installDataMore: {
+    color: theme.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    textAlign: 'center',
   },
   divider: {
     backgroundColor: theme.border,
