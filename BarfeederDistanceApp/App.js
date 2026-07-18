@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -158,11 +158,17 @@ export default function App() {
   const theme = isDarkMode ? darkTheme : lightTheme;
   styles = createStyles(theme);
   const textInputProps = getTextInputThemeProps(theme);
+  const contentScrollRef = useRef(null);
   const selectedLathe = lathes.find((lathe) => lathe.id === selectedLatheId);
   const selectedBarFeeder = barFeeders.find(
     (barFeeder) => barFeeder.id === selectedBarFeederId
   );
   const hasSelection = Boolean(selectedLathe && selectedBarFeeder);
+  const scrollFocusedInputIntoView = useCallback(() => {
+    setTimeout(() => {
+      contentScrollRef.current?.scrollToEnd({ animated: true });
+    }, 250);
+  }, []);
 
   useEffect(() => {
     if (!hasSupabaseConfig) {
@@ -760,6 +766,7 @@ export default function App() {
         <ScrollView
           automaticallyAdjustKeyboardInsets
           contentInsetAdjustmentBehavior="automatic"
+          ref={contentScrollRef}
           style={styles.contentScroll}
           contentContainerStyle={styles.content}
           keyboardDismissMode="on-drag"
@@ -851,6 +858,7 @@ export default function App() {
             onVariationFractionChange={setVariationFractionEighths}
             onVariationReasonChange={setVariationReason}
             onVariationWholeInchesChange={setVariationWholeInches}
+            onTextInputFocus={scrollFocusedInputIntoView}
             selectedBarFeeder={selectedBarFeeder}
             selectedLathe={selectedLathe}
             submissionMessage={submissionMessage}
@@ -1579,6 +1587,7 @@ function DistanceResult({
   onSaveMeasuredDistance,
   onSaveVariation,
   onSubmissionNotesChange,
+  onTextInputFocus,
   onVariationFractionChange,
   onVariationReasonChange,
   onVariationWholeInchesChange,
@@ -1640,6 +1649,7 @@ function DistanceResult({
           label="Measured Distance"
           onFractionChange={onMeasuredFractionChange}
           onWholeInchesChange={onMeasuredWholeInchesChange}
+          textInputProps={textInputProps}
           wholeInches={measuredWholeInches}
         />
 
@@ -1647,6 +1657,7 @@ function DistanceResult({
         <TextInput
           multiline
           onChangeText={onSubmissionNotesChange}
+          onFocus={onTextInputFocus}
           placeholder="Measurement context, setup notes, machine condition..."
           style={[styles.input, styles.textArea]}
           value={submissionNotes}
@@ -1703,6 +1714,7 @@ function DistanceResult({
         label="Measurement Used"
         onFractionChange={onVariationFractionChange}
         onWholeInchesChange={onVariationWholeInchesChange}
+        textInputProps={textInputProps}
         wholeInches={variationWholeInches}
       />
 
@@ -1710,6 +1722,7 @@ function DistanceResult({
       <TextInput
         multiline
         onChangeText={onVariationReasonChange}
+        onFocus={onTextInputFocus}
         placeholder="Explain what prevented the recommended distance..."
         style={[styles.input, styles.textArea]}
         value={variationReason}
@@ -1736,8 +1749,10 @@ function DistanceInchInput({
   label,
   onFractionChange,
   onWholeInchesChange,
+  textInputProps,
   wholeInches,
 }) {
+  const [isFractionMenuOpen, setIsFractionMenuOpen] = useState(false);
   const selectedEighths = getDistanceSelectionEighths(wholeInches, fractionEighths);
   const selectedLabel = selectedEighths
     ? formatEighthsAsInches(selectedEighths)
@@ -1745,6 +1760,9 @@ function DistanceInchInput({
   const wholeInchesValue = wholeInches.trim();
   const selectedWhole = Number.parseInt(wholeInchesValue || '0', 10);
   const isAtMaxWholeInches = selectedWhole === MAX_DISTANCE_INCHES;
+  const selectedFraction = FRACTION_OPTIONS.find(
+    (option) => option.eighths === fractionEighths
+  );
 
   return (
     <View>
@@ -1777,39 +1795,61 @@ function DistanceInchInput({
             placeholder="0"
             style={[styles.input, styles.inchNumberInput]}
             value={wholeInches}
+            {...textInputProps}
           />
         </View>
         <Text style={styles.inchUnit}>in</Text>
+        <View style={styles.fractionField}>
+          <Pressable
+            onPress={() => setIsFractionMenuOpen((isOpen) => !isOpen)}
+            style={styles.fractionButton}
+          >
+            <Text style={styles.fractionButtonText}>
+              {selectedFraction?.label ?? '0'}
+            </Text>
+            <Text style={styles.fractionButtonIcon}>
+              {isFractionMenuOpen ? '^' : 'v'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
-      <View style={styles.fractionMenu}>
-        {FRACTION_OPTIONS.map((option) => {
-          const isDisabled = isAtMaxWholeInches && option.eighths > 0;
-          const isSelected = option.eighths === fractionEighths;
+      {isFractionMenuOpen ? (
+        <View style={styles.fractionDropdownRow}>
+          <View style={styles.fractionDropdownSpacer} />
+          <View style={styles.fractionMenu}>
+            {FRACTION_OPTIONS.map((option) => {
+              const isDisabled = isAtMaxWholeInches && option.eighths > 0;
+              const isSelected = option.eighths === fractionEighths;
 
-          return (
-            <Pressable
-              disabled={isDisabled}
-              key={option.eighths}
-              onPress={() => onFractionChange(option.eighths)}
-              style={[
-                styles.fractionOption,
-                isSelected && styles.selectedFractionOption,
-                isDisabled && styles.disabledFractionOption,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.fractionOptionText,
-                  isSelected && styles.selectedFractionOptionText,
-                  isDisabled && styles.disabledFractionOptionText,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+              return (
+                <Pressable
+                  disabled={isDisabled}
+                  key={option.eighths}
+                  onPress={() => {
+                    onFractionChange(option.eighths);
+                    setIsFractionMenuOpen(false);
+                  }}
+                  style={[
+                    styles.fractionOption,
+                    isSelected && styles.selectedFractionOption,
+                    isDisabled && styles.disabledFractionOption,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.fractionOptionText,
+                      isSelected && styles.selectedFractionOptionText,
+                      isDisabled && styles.disabledFractionOptionText,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1940,7 +1980,7 @@ function createStyles(theme) {
   content: {
     gap: 16,
     paddingHorizontal: 20,
-    paddingBottom: 140,
+    paddingBottom: 220,
   },
   contentScroll: {
     flex: 1,
@@ -1999,7 +2039,33 @@ function createStyles(theme) {
     marginTop: 6,
   },
   wholeInchesField: {
+    flex: 3,
+  },
+  fractionField: {
     flex: 1,
+    minWidth: 86,
+  },
+  fractionButton: {
+    alignItems: 'center',
+    backgroundColor: theme.background,
+    borderColor: theme.borderStrong,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 46,
+    paddingHorizontal: 12,
+  },
+  fractionButtonText: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  fractionButtonIcon: {
+    color: theme.textSubtle,
+    fontSize: 12,
+    fontWeight: '800',
+    marginLeft: 6,
   },
   inchUnit: {
     color: theme.textSoft,
@@ -2007,12 +2073,21 @@ function createStyles(theme) {
     fontWeight: '700',
     width: 20,
   },
+  fractionDropdownRow: {
+    flexDirection: 'row',
+    marginTop: 6,
+  },
+  fractionDropdownSpacer: {
+    flex: 3,
+    marginRight: 28,
+  },
   fractionMenu: {
     backgroundColor: theme.panel,
     borderColor: theme.borderStrong,
     borderRadius: 8,
     borderWidth: 1,
-    marginTop: 8,
+    flex: 1,
+    minWidth: 86,
     overflow: 'hidden',
   },
   fractionOption: {
