@@ -1,0 +1,17 @@
+**Title:** Bar Feeder Distance
+
+**Description:**
+
+> Instantly look up the correct bar feeder to lathe setup distances with the official Edge Technologies Bar Feeder Distance app.
+>
+> Exclusively for Edge Technologies technicians, this app provides a quick and easy way to find the precise measurement needed for any lathe and bar feeder combination.
+>
+> Features:
+> *   **Comprehensive Database:** Access a growing database of lathe and bar feeder models.
+> *   **Quick Search:** Easily search and filter by manufacturer and model to find your equipment.
+> *   **Submit New Measurements:** Can't find a distance? Use the app to record and submit new measurements directly to the company database.
+> *   **Log Variations:** Document any setup that requires a variation from the standard distance, providing valuable feedback to our engineering team.
+> *   **View History:** See a history of submitted measurements and variations for each equipment pair.
+> *   **Recent Lookups:** Quickly access your most recent searches.
+>
+> This tool is designed to save you time in the field and ensure accurate, consistent setups every time.
